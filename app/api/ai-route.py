@@ -4,6 +4,8 @@ from typing import List
 from app.config.config import Config
 from app.ingestion.ingestion import ingest_docs
 import os
+import shutil
+import uuid
 from app.utils.utils import cleanup_session
 from fastapi.responses import FileResponse
 
