@@ -1,6 +1,7 @@
 import os
 from langchain_community.vectorstres import FAISS
 from langchain_hugging_face import HuggingFaceEmbeddings
+from app.config.config import Config
 
 class VectorDB:
     """
@@ -10,7 +11,7 @@ class VectorDB:
      Each session has its own vector database file, identified by the session_id.
     """
 
-    def __init__(self, embed_model_name, db_path="", session_id):
+    def __init__(self, embed_model_name, db_path=Config.VECTOR_DB_DIR, session_id=None):
         """
         Initialize the VectorDB with the specified embedding model, database path, and session ID.
         """
@@ -26,5 +27,4 @@ class VectorDB:
         if self.db_path and os.path.exists(self.db_path): # Check if the database file exists at the specified path
             self.vector_db=FAISS.load_local(self.db_path, self.emebed_model) # Load the existing vector database using FAISS and the embedding model
         else:
-            self.vector_db=FAISS.from_embeddings([], self.emebed_model) # Create a new empty vector database if the file does not exist
-        return self.vector_db # return the vector db instance.
+            self.vector_db=FAISS.from_embeddings([], self.emebed_model) # Create a new empty vector database if the file does not exist.
