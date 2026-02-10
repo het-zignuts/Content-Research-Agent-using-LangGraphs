@@ -1,6 +1,7 @@
 from app.llms.groq import get_groq_llm
 
-ROUTER_PROMPT="""
+def tool_selector_node(state):
+    TOOL_SELECTOR_PROMPT="""
     SYSTEM_INSTRUCTION:
         You are a task router.
 
@@ -17,11 +18,9 @@ ROUTER_PROMPT="""
     USER_QUERY:
     {query}
 """
-
-def router_node(state):
     query=state["query"]
     llm=get_groq_llm(temperature=0.0)
-    response=llm.invoke(ROUTER_PROMPT.format(query=query)).strip().lower()
+    response=llm.invoke(TOOL_SELECTOR_PROMPT.format(query=query)).strip().lower()
     if response not in ["summarize", "qna", "compare", "extract", "insight"]:
         response="qna"  
     return {

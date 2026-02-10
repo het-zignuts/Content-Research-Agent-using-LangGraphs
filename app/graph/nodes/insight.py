@@ -1,6 +1,6 @@
 from app.llms.groq import get_groq_llm
 
-def summarize_node(state):
+def insight_node(state):
     INSIGHT_PROMPT="""
         SYSTEM INSTRUCTION:
             You are an insight generation assistant.

@@ -1,6 +1,6 @@
 from app.llms.groq import get_groq_llm
 
-def qa_node(state):
+def qna_node(state):
     QnA_PROMPT="""
         SYSTEM INSTRUCTIONS:
             You are a QnA assistant. Answer the question by asked in the user query based on the retrieved context provided below. 

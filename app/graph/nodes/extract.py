@@ -1,6 +1,6 @@
 from app.llms.groq import get_groq_llm
 
-def report_node(state):
+def extract_node(state):
     EXTRACTION_PROMPT="""
         SYSTEM INSTRUCTION:
             You are an info-extraction and report generation assistant.
