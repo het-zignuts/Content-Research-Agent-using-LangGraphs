@@ -11,7 +11,7 @@ class VectorDB:
      Each session has its own vector database file, identified by the session_id.
     """
 
-    def __init__(self, embed_model_name, db_path=Config.VECTOR_DB_DIR, session_id=None):
+    def __init__(self, embed_model_name, db_path=Config.VECTOR_DB_PATH, session_id=None):
         """
         Initialize the VectorDB with the specified embedding model, database path, and session ID.
         """
