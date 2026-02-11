@@ -2,27 +2,56 @@ from app.llms.groq import get_groq_llm
 
 def tool_selector_node(state):
     TOOL_SELECTOR_PROMPT="""
-    SYSTEM_INSTRUCTION:
-        You are a task router.
+    You are a strict task router.
 
-        Given a user query, classify it into ONE of these tasks:
-        - summarize
-        - qna
-        - compare
-        - extract
-        - insight
+    Classify the USER_QUERY into EXACTLY ONE of the following tasks:
 
-        Return ONLY the task name as a string.
-        e.g if the query is "Summarize the main findings from the documents", your response should be "summarize".
+    - summarize
+    - qna
+    - compare
+    - extract
+    - insight
+
+    Definitions:
+
+    summarize:
+    Requests for overall summary, overview, or main findings.
+
+    qna:
+    Specific factual question about the documents.
+
+    compare:
+    Requests to compare multiple documents, entities, or data points.
+
+    extract:
+    Requests to extract structured information, lists, fields,
+    OR generate a structured/downloadable report based on the documents.
+    ANY query asking to generate a report, create a document,
+    prepare a downloadable file, or formatted output MUST be extract.
+
+    insight:
+    Requests for analysis, recommendations, or interpretation.
+
+    Rules:
+    - Output ONLY one word.
+    - Do NOT explain.
+    - Do NOT add punctuation.
+    - Must be one of:
+      summarize
+      qna
+      compare
+      extract
+      insight
 
     USER_QUERY:
     {query}
-"""
+    """
     query=state["query"]
     llm=get_groq_llm(temperature=0.0)
-    response=llm.invoke(TOOL_SELECTOR_PROMPT.format(query=query)).strip().lower()
-    if response not in ["summarize", "qna", "compare", "extract", "insight"]:
-        response="qna"  
+    response=llm.invoke(TOOL_SELECTOR_PROMPT.format(query=query))
+    decision=response.content.strip().lower()
+    if decision not in ["summarize", "qna", "compare", "extract", "insight"]:
+        raise ValueError(f"Invalid task decision from tool selector: {decision}") 
     return {
-        "task": response
+        "task": decision
     }

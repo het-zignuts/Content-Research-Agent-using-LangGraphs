@@ -24,4 +24,4 @@ def extract_node(state):
     report=llm.invoke(
         EXTRACTION_PROMPT.format(context=context, query=state["query"])
     )
-    return {"report_md": report}
+    return {"report_md": report.content}

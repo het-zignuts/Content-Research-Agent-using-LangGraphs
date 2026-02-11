@@ -10,7 +10,7 @@ def cleanup_session(session_id: str):
     if os.path.exists(uploads_path):
         shutil.rmtree(uploads_path)
 
-    vector_db_path = os.path.join(
+    vector_db_path=os.path.join(
         Config.VECTOR_DB_DIR,
         f"{session_id}_vector_db"
     )

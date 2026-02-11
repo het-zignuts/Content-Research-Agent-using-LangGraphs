@@ -21,7 +21,7 @@ def build_graph():
 
     graph.add_edge(START, "tool_selector")
     graph.add_edge("tool_selector", "retrieve")
-    graph.add_edge("retrieve", lambda state: state["task"], {
+    graph.add_conditional_edges("retrieve", lambda state: state["task"], {
         "qna": "qna",
         "compare": "compare",
         "insight": "insight",

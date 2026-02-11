@@ -1,6 +1,7 @@
 from app.ingestion.loader import load_documents
 from app.ingestion.chunker import split_documents
 from app.ingestion.embed import embed_documents
+from typing import List
 
 def ingest_docs(session_id: str, file_paths: List[str]):
     documents = load_documents(session_id, file_paths)

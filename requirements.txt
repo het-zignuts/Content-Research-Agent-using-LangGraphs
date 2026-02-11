@@ -30,3 +30,5 @@ python-multipart
 requests
 langgraph
 tiktoken
+faiss-cpu==1.7.4
+numpy==1.26.4
