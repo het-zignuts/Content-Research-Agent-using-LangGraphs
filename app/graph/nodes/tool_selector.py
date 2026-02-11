@@ -1,6 +1,10 @@
 from app.llms.groq import get_groq_llm
 
 def tool_selector_node(state):
+    """
+    Tool Selector Node for the LangGraph. This node is responsible for classifying the user query into one of the predefined tasks: summarize, qna, compare, extract, or insight. 
+    It defines a prompt that instructs the LLM to analyze the user query and determine which task it corresponds to based on the definitions provided for each task. The LLM is invoked with this prompt, and the resulting classification is returned in the state for downstream processing in the graph.
+    """
     TOOL_SELECTOR_PROMPT="""
     You are a strict task router.
 
@@ -46,12 +50,12 @@ def tool_selector_node(state):
     USER_QUERY:
     {query}
     """
-    query=state["query"]
-    llm=get_groq_llm(temperature=0.0)
-    response=llm.invoke(TOOL_SELECTOR_PROMPT.format(query=query))
-    decision=response.content.strip().lower()
+    query=state["query"] # retrieve user query
+    llm=get_groq_llm(temperature=0.0) # initialize llm 
+    response=llm.invoke(TOOL_SELECTOR_PROMPT.format(query=query)) # invoke llm to elicit response
+    decision=response.content.strip().lower() # extract decision
     if decision not in ["summarize", "qna", "compare", "extract", "insight"]:
-        raise ValueError(f"Invalid task decision from tool selector: {decision}") 
+        raise ValueError(f"Invalid task decision from tool selector: {decision}") # raise error if the decision is not one of the predefined tasks
     return {
-        "task": decision
+        "task": decision # add the tool decision to task field in state
     }

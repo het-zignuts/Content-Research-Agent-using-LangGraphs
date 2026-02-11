@@ -1,6 +1,10 @@
 from app.llms.groq import get_groq_llm
 
 def compare_node(state):
+    """
+    Compare Node for the LangGraph. This node takes the grouped documents retrieved from the vector database and compares them based on the user query. It constructs a context for the LLM prompt by aggregating the content from the retrieved documents, including their names and page numbers for reference. The node then defines a comparison prompt that instructs the LLM to compare and contrast the documents in a structured tabular format, ensuring that each point of comparison is clearly identified along with its source. The LLM is invoked with this prompt, and the generated comparison is returned as the answer in the state for downstream processing or response generation.
+    """
+
     COMPARISION_PROMPT="""
         SYSTEM INSTRUCTION:
             You are a compare assistant.
@@ -22,17 +26,17 @@ def compare_node(state):
         {query}
 
     """
-    docs=state["grouped_docs"]
-    context=""
+    docs=state["grouped_docs"] # get the grouped docs from the sate
+    context="" # initialize an empty string to build the context for the LLM prompt
     for doc_id, contents in docs.items():
-        doc_name=contents[0]["doc_name"]
+        doc_name=contents[0]["doc_name"] # retrieve documant name
         context+=f"Document Name: {doc_name}\n"
         context+=f"Context from {doc_name}:\n"
         for content in contents:
-            context+=f"- {content['content']}\n Page Number: {content['page_number']}\n"
+            context+=f"- {content['content']}\n Page Number: {content['page_number']}\n" # add each content piece from the document to the context, along with its page number for reference
 
-    llm=get_groq_llm(temperature=0.0)
+    llm=get_groq_llm(temperature=0.0) # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
     comparison=llm.invoke(
-        COMPARISION_PROMPT.format(context=context, query=state["query"])
+        COMPARISION_PROMPT.format(context=context, query=state["query"]) # Invoke the LLM with the formatted prompt, passing in the constructed context and the user query to generate the comparison output based on the provided documents and the user's request
     )
-    return {"answer": comparison}
+    return {"answer": comparison} # return the generated comparison as the answer in the state, which can be used by downstream nodes in the graph to provide a response to the user or for further processing.

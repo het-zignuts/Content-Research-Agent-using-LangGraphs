@@ -9,13 +9,18 @@ import uuid
 from app.utils.utils import cleanup_session
 from fastapi.responses import FileResponse
 
+# A router for handling AI research requests, which includes uploading documents, invoking the LangGraph for processing, and returning the response along with any generated reports. 
+# It also includes a route for downloading generated reports.
 router=APIRouter(prefix="/ai", tags=["AI Content Research Agent"])
 
 @router.post("/ai-research")
 def ai_research(query: str = Query(..., description="Research query to ask the agent"), files: List[UploadFile] = File(...)):
+    """
+    Endpoint to handle AI research requests. It accepts a research query and a list of files to be ingested.
+    """
     session_id=str(uuid.uuid4()) # generate a unique session ID for this research session
     try:
-        UPLOAD_PATH=f"{Config.UPLOAD_PATH}/{session_id}"
+        UPLOAD_PATH=f"{Config.UPLOAD_PATH}/{session_id}" # create a unique upload path for this session to store the uploaded files
         os.makedirs(UPLOAD_PATH, exist_ok=True) # create a directory for this session's uploads
         file_paths=[]
         for file in files:
@@ -29,8 +34,6 @@ def ai_research(query: str = Query(..., description="Research query to ask the a
 
         graph=build_graph() # build the LangGraph for this session and query
         response=graph.invoke({"session_id": session_id, "query": query, "report_md": None, "answer": None}) # invoke the graph with the session ID and user query to get the response
-
-        # response=response.model_dump() # convert the response to a dictionary for JSON serialization
         if response["answer"] is None:
             response["answer"]="Sorry, I could not find an answer to your question based on the provided documents." # provide a default answer if the graph did not generate one
         if response["report_md"]:
@@ -42,15 +45,17 @@ def ai_research(query: str = Query(..., description="Research query to ask the a
         return response
     
     except Exception as e:
-        raise e # return any exceptions as error messages in the response
-
+        raise e # raise any exceptions that occur during processing to be handled by FastAPI's error handlers
     finally:
-        cleanup_session(session_id) # clean up uploaded files and vector DB for this session to free up space
+        cleanup_session(session_id) # clean up uploaded files and vector DB for this session to free up space, executed before returning the response
 
 @router.get("/reports/download/{report_filename}")
 def download(report_filename: str):
+    """
+    Endpoint to download generated reports. It serves the markdown report file for the given filename.
+    """
     return FileResponse(
-        f"{Config.REPORT_STORE_PATH}/{report_filename}",
-        media_type="text/markdown",
-        filename=report_filename
+        f"{Config.REPORT_STORE_PATH}/{report_filename}", # serve the report file from the report store directory
+        media_type="text/markdown", # set the media type to markdown for proper handling by the browser or client
+        filename=report_filename # set the filename for the downloaded file
     )

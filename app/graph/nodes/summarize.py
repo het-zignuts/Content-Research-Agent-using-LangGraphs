@@ -1,6 +1,10 @@
 from app.llms.groq import get_groq_llm
 
 def summarize_node(state):
+    """
+    Summarization Node for the LangGraph. This node takes the retrieved documents from the vector database and generates a concise summary based on the user query. 
+    It constructs a context for the LLM prompt by aggregating the content from the retrieved documents, including their names and page numbers for reference.
+    """
     SUMMARY_PROMPT="""
         SYSTEM INSTRUCTION:
             You are a summarization assistant. 
@@ -20,9 +24,11 @@ def summarize_node(state):
         USER QUERY:
         {query}
     """
-    llm=get_groq_llm(temperature=0.0)
+    llm=get_groq_llm(temperature=0.0) # initialize llm
+    # prepare context
     context="\n".join(f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Page Content: {d.page_content}\n" for d in state["documents"])
+    #invoke llm
     summary=llm.invoke(
         SUMMARY_PROMPT.format(context=context, query=state["query"])
     )
-    return {"answer": summary}
+    return {"answer": summary} # add the summary to the state.

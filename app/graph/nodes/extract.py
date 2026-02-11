@@ -1,6 +1,10 @@
 from app.llms.groq import get_groq_llm
 
 def extract_node(state):
+    """
+    Extraction Node for the LangGraph. This node takes the retrieved documents from the vector database and extracts key information based on the user query. It constructs a context for the LLM prompt by aggregating the content from the retrieved documents, including their names and page numbers for reference. 
+    The node then defines an extraction prompt that instructs the LLM to extract relevant information from the context in relation to the user query and generate a research report in markdown format. The LLM is invoked with this prompt, and the generated markdown report is returned in the state for downstream processing or response generation.
+    """
     EXTRACTION_PROMPT="""
         SYSTEM INSTRUCTION:
             You are an info-extraction and report generation assistant.
@@ -19,9 +23,9 @@ def extract_node(state):
         {query}
     """
 
-    llm=get_groq_llm(temperature=0.0)
-    context="\n".join(f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Page Content: {d.page_content}\n" for d in state["documents"])
+    llm=get_groq_llm(temperature=0.0) # initializing the llm
+    context="\n".join(f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Page Content: {d.page_content}\n" for d in state["documents"]) # prepare the context
     report=llm.invoke(
-        EXTRACTION_PROMPT.format(context=context, query=state["query"])
+        EXTRACTION_PROMPT.format(context=context, query=state["query"]) # invoke the llm with the formatted prompt
     )
-    return {"report_md": report.content}
+    return {"report_md": report.content} # add the generated markdown report to the state under the key "report_md", which can be used by downstream nodes in the graph to provide a response to the user or for further processing.
