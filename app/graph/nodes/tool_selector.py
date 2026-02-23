@@ -23,6 +23,7 @@ def tool_selector_node(state):
 
     qna:
     Specific factual question about the documents.
+    It should be selected if the user asks general questions about the documents.
 
     compare:
     Requests to compare multiple documents, entities, or data points.
@@ -32,6 +33,8 @@ def tool_selector_node(state):
     OR generate a structured/downloadable report based on the documents.
     ANY query asking to generate a report, create a document,
     prepare a downloadable file, or formatted output MUST be extract.
+    It should only be selected if user explicitly asks to get/extract important or specific information about the docs.
+    Do not mix it up with qna.
 
     insight:
     Requests for analysis, recommendations, or interpretation.
