@@ -1,39 +1,42 @@
 from app.llms.groq import get_groq_llm
+from app.schemas.schemas import ExtractionResponse # Assuming this is a Pydantic model
+import json
 
 def extract_node(state):
-    """
-    Extraction Node for the LangGraph. This node takes the retrieved documents from the vector database and extracts key information based on the user query. It constructs a context for the LLM prompt by aggregating the content from the retrieved documents, including their names and page numbers for reference. 
-    The node then defines an extraction prompt that instructs the LLM to extract relevant information from the context in relation to the user query and generate a research report in markdown format. The LLM is invoked with this prompt, and the generated markdown report is returned in the state for downstream processing or response generation.
-    """
-    EXTRACTION_PROMPT="""
-        SYSTEM INSTRUCTION:
-            You are an info-extraction and report generation assistant.
-
-            Extract the key information from the retrieved content provided as context below, based on the user query.
-            If it is asked in the query to create report, then only generate a research report in markdown format based on the extracted information.
-
-            OUTPUT FORMAT:
-            Give the answer only in the following JSON format:
-            {{
-                "answer": <your answer>,
-                "report": <markdown report genrated (more detailed than answer, only if asked in query, otherwise keep it null.)>
-            }}
-
-            Return only the .md format report as a string, for example:
-            report=f"# Research Report .... "
-
-            No other text format should be returned other than the output format.
-
+    EXTRACTION_PROMPT = """
+        You are an information extraction assistant. You extract the details asked by the user in the query, from the uploaded docs and answer them with the extracted data.
+        You generate markdown report when asked.
+        
         CONTEXT:
         {context}
 
         USER QUERY:
         {query}
+
+        INSTRUCTIONS:
+        1. Provide a concise plain-text answer in the 'answer' field.
+        2. If the user requested a report, generate a markdown report in the 'report' field.
+        3. If no report is requested, leave 'report' as null or an empty string.
+        4. the generated response should be such that it should STRICTLY survive pydantic model validation.
+        5. Strictly write 'Couldn't extract answer from the provided docs...' in case you are unable to generate 'answer', do not hallucinate or give any out of context answer.
     """
 
-    llm=get_groq_llm(temperature=0.0) # initializing the llm
-    context="\n".join(f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Page Content: {d.page_content}\n" for d in state["documents"]) # prepare the context
-    response=llm.invoke(
-        EXTRACTION_PROMPT.format(context=context, query=state["query"]) # invoke the llm with the formatted prompt
+    llm=get_groq_llm(temperature=0.0).with_structured_output(ExtractionResponse)
+    
+    context = "\n".join(
+        f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
+        for d in state["documents"]
     )
-    return {"answer": response.content["answer"], "report_md": response.content["report"]} # add the generated markdown report to the state under the key "report_md", which can be used by downstream nodes in the graph to provide a response to the user or for further processing.
+    
+    try:
+        response=llm.invoke(EXTRACTION_PROMPT.format(context=context, query=state["query"]))
+        return {
+            "answer": response.answer,
+            "report_md": response.report if response.report else None
+        }
+    except Exception as e:
+        print(f"Extraction Error: {str(e)}")
+        return {
+            "answer": "I encountered an error processing the documents.",
+            "report_md": None
+        }
