@@ -126,6 +126,10 @@ def tool_selector_node(state):
       compare
       extract
       insight
+
+    - IMPORTANT: you can use this order of priority for resolving conflicts, supported by your intelligence:
+    qna > summarize > compare > extract > insight.
+
     - VERY IMPORTANT: In case you find the query not fit to any category, then please return 'None', But do not return an incorrect or hallucinated category.
     
     
