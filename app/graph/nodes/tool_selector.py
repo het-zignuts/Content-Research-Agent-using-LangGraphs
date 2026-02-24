@@ -131,7 +131,8 @@ def tool_selector_node(state):
     qna > summarize > compare > extract > insight.
 
     - VERY IMPORTANT: In case you find the query not fit to any category, then please return 'None', But do not return an incorrect or hallucinated category.
-    
+    e.g.: If the query says, "Merge these two files in order", we dont have any tool for that. So in such case you return 'None'.
+    Intelligently identify if there is a tool available to carry out the query task, and if not, then return 'None'.
     
     USER_QUERY:
     {query}
@@ -140,8 +141,8 @@ def tool_selector_node(state):
     llm=get_groq_llm(temperature=0.0) # initialize llm 
     response=llm.invoke(TOOL_SELECTOR_PROMPT.format(query=query)) # invoke llm to elicit response
     decision=response.content.strip().lower() # extract decision
-    if decision=='None':
-        raise ValueError(f"The task couldnt be inferred from the query passed. Please try writing the query in a different way....")
+    if decision=='None' or decision=='none':
+        raise ValueError(f"No tools availabe to serve the request OR the task couldnt be inferred from the query passed. ")
     if decision not in ["summarize", "qna", "compare", "extract", "insight"]:
         raise ValueError(f"Invalid task decision from tool selector: {decision}") # raise error if the decision is not one of the predefined tasks
     return {

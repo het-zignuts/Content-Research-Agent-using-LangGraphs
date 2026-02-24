@@ -1,5 +1,5 @@
 from app.graph.graph import build_graph
-from fastapi import APIRouter, Query, UploadFile, File
+from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from typing import List
 from app.config.config import Config
 from app.ingestion.ingestion import ingest_docs
@@ -43,7 +43,8 @@ def ai_research(query: str = Query(..., description="Research query to ask the a
                 f.write(response["report_md"]) # save the report markdown to a file for download
             response["report_url"]=f"/reports/download/{report_filename}" # include the report URL in the response for the frontend to access
         return response
-    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))  # Catch the ValueError from tool_selector_node
     except Exception as e:
         raise e # raise any exceptions that occur during processing to be handled by FastAPI's error handlers
     finally:
