@@ -10,3 +10,11 @@ class ExtractionResponse(BaseSchema):
 class SummarizationResponse(BaseSchema):
     pass
 
+class ComparisonResponse(BaseSchema):
+    pass
+
+class QnAResponse(BaseSchema):
+    pass
+
+class InsightsResponse(BaseSchema):
+    pass
