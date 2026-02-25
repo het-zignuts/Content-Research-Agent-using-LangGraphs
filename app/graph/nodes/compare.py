@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import *
+from app.schemas.schemas import BaseSchema
 
 def compare_node(state):
     """
@@ -46,7 +46,7 @@ def compare_node(state):
         {query}
     """
 
-    llm=get_groq_llm(temperature=0.0).with_structured_output(ComparisonResponse)  # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
+    llm=get_groq_llm(temperature=0.0).with_structured_output(BaseSchema)  # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
 
     docs=state["grouped_docs"] # get the grouped docs from the sate
     context="" # initialize an empty string to build the context for the LLM prompt

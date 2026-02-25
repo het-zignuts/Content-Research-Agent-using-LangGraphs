@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import InsightsResponse
+from app.schemas.schemas import BaseSchema
 
 def insight_node(state):
     """
@@ -37,7 +37,7 @@ def insight_node(state):
         USER QUERY:
         {query}
     """
-    llm=get_groq_llm(temperature=0.0).with_structured_output(InsightsResponse)
+    llm=get_groq_llm(temperature=0.0).with_structured_output(BaseSchema)
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 

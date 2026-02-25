@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import SummarizationResponse 
+from app.schemas.schemas import BaseSchema 
 
 def summarize_node(state):
     """
@@ -32,7 +32,7 @@ def summarize_node(state):
         USER QUERY:
         {query}
     """
-    llm=get_groq_llm(temperature=0.0).with_structured_output(SummarizationResponse)
+    llm=get_groq_llm(temperature=0.0).with_structured_output(BaseSchema)
     # prepare context
     context="\n".join(f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Page Content: {d.page_content}\n" for d in state["documents"])
     #invoke llm

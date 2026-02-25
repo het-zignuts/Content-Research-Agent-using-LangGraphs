@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import ExtractionResponse # Assuming this is a Pydantic model
+from app.schemas.schemas import ExtractionResponse 
 import json
 
 def extract_node(state):
