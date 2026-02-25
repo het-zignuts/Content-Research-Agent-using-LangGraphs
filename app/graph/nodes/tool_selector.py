@@ -10,7 +10,7 @@ def tool_selector_node(state):
     SYSTEM INSTRUCTIONS:
     You are a strict task router. 
     Based on the user query passed, you decide which category does the task mentioned in user query belongs to, so as to help the LangGraph agent in tool selection to execute user query.
-    This is used to determine which type of task in hand the agent is dealing with and proces it accordingly, in our Content-Research-Agent System.
+    This is used to determine which type of task in hand the agent is dealing with and process it accordingly, in our Content-Research-Agent System.
 
     Classify the USER_QUERY into EXACTLY ONE of the following tasks:
 

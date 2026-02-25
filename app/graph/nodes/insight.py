@@ -37,7 +37,7 @@ def insight_node(state):
         USER QUERY:
         {query}
     """
-    llm=get_groq_llm(temperature=0.0).with_structured_output(BaseSchema)
+    llm=get_groq_llm(temperature=0.3).with_structured_output(BaseSchema)
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
