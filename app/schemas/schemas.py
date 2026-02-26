@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict
 
 class BaseSchema(BaseModel):
     answer: str
@@ -18,3 +18,8 @@ class QnAResponse(BaseSchema):
 
 class InsightsResponse(BaseSchema):
     pass
+
+class AgentResponse(BaseModel):
+    status: int
+    message: str
+    data: Dict

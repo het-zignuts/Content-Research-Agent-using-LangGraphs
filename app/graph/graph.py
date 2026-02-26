@@ -41,3 +41,5 @@ def build_graph():
 
     # compile the graph to optimize it for execution and return the compiled graph object that can be executed with a given initial state to process user queries and generate responses based on the defined flow and nodes in the graph.
     return graph.compile()
+
+graph=build_graph()

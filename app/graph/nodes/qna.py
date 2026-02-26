@@ -1,5 +1,7 @@
 from app.llms.groq import get_groq_llm
 from app.schemas.schemas import QnAResponse
+from pydantic import ValidationError
+import json
 
 def qna_node(state):
     """
@@ -7,36 +9,118 @@ def qna_node(state):
     It constructs a context for the LLM prompt by aggregating the content from the retrieved documents, including their names and page numbers for reference. The node then defines a QnA prompt that instructs the LLM to answer the user query using only the information from the retrieved context, and to provide citations for each piece of information used in the answer. The LLM is invoked with this prompt, and the generated answer is returned in the state for downstream processing or response generation.
     """
     QnA_PROMPT = """
-        SYSTEM INSTRUCTIONS:
-        You are a precise QnA assistant.
+    
+    # SYSTEM ROLE:
+    You are a **precise Q&A assistant**.
 
-        1. Use ONLY the context provided below as reference to answer the questions.
-        
-        2. If you cannot generate response, or if the context provided is not sufficient to answer the query, then STRICTLY say "I don't know. Couldn't figure it out from the context.".
-           Do not hallucinate.
+    # CORE TASK
 
-        3. Provide a concise plain-text answer in the 'answer' field with format "Answer: .... Citations: ...", as shown in example below:
-        e.g.:   Query: What does the policy say?
-                Response:
-                {{
-                    "answer": "Answer: The policy says that she can get the money. \\n Citations: [source: Doc1.pdf, page: 2], [source: Doc2.pdf, page: 5]"
-                }}
+    **ANSWER** user questions using **ONLY** the context provided below as reference.
 
-        The answer and citations should not contain any other text than the actual answer in the Answer field and citations as per above format in Citations field.
+    # OUTPUT FORMAT REQUIREMENTS
 
-        4. Keep answer to 3-5 sentences maximum.
-        
-        5. Follow this EXACT format with NO additional text before or after.
+    CRITICAL: Pydantic-Compatible JSON
 
-        6. The genrated response should be such that it ALWAYS survives pydantic model validation.
+    You **MUST** return a VALID JSON OBJECT that STRICTLY survives Pydantic model validation.
 
-        CONTEXT:
-        {context}
+    ## Required JSON Schema
 
-        USER QUERY: 
-        {query}
+    {{
+        "answer": "[string]"
+    }}
+
+    ## Field Specifications
+
+    **"answer"** (REQUIRED - string)
+
+    - Format: "Answer: [your_answer] \\n Citations: [citation_list]"
+
+    - Keep answer to **3-5 sentences MAXIMUM**
+
+    - NO additional text before or after the JSON
+
+    - The answer field should contain ONLY the actual answer and citations
+
+    ## Answer & Citation Format Rules
+
+    **Structure:**
+
+    "Answer: [your_response_text] \\n Citations: [source: [doc_name], page: [N]], [source: [doc_name], page: [N]]"
+
+    **Components:**
+
+    1. **Answer Section**
+    - Start with "Answer: "
+    - Provide direct, concise response
+    - Maximum 3-5 sentences
+    - Based ONLY on provided context
+
+    2. **Citations Section**
+    - Start with "\\n Citations: "
+    - Format EACH citation as: "[source: [doc_name], page: [N]]"
+    - Multiple citations separated by commas
+    - Include ALL relevant sources
+
+    # FALLBACK RESPONSE
+
+    If you **CANNOT** answer from the provided context:
+
+    {{
+        "answer": "I don't know. Couldn't figure it out from the context."
+    }}
+
+    ## IMPORTANT: Use this EXACT fallback text when:
+    - Context is insufficient
+    - Information is not present in documents
+    - Query is out of scope
+
+    # EXAMPLE OUTPUTS
+
+    **Example 1:** Valid answer with citations
+
+    Query: "What does the policy say?"
+
+    Response:
+    {{
+        "answer": "Answer: The policy states that she can receive the monetary benefit within 30 business days of approval. The eligible amount is based on the submitted documentation and is capped at $10,000 annually. \\n Citations: [source: Doc1.pdf, page: 2], [source: Doc2.pdf, page: 5]"
+    }}
+
+    **Example 2:** Valid answer with single citation
+
+    Query: "What is the refund timeline?"
+
+    Response:
+    {{
+        "answer": "Answer: The refund will be processed within 14 business days from the date of request submission. \\n Citations: [source: Policy_Document.pdf, page: 8]"
+    }}
+
+    **Example 3:** Multiple citations from same document
+
+    Query: "What are the eligibility criteria?"
+
+    Response:
+    {{
+        "answer": "Answer: Applicants must be full-time employees with at least 6 months of tenure. They must submit form A-12 along with supporting documents. Additionally, prior approval from the department head is mandatory. \\n Citations: [source: HR_Manual.pdf, page: 3], [source: HR_Manual.pdf, page: 7], [source: HR_Manual.pdf, page: 12]"
+    }}
+
+    **Example 4:** Insufficient context
+
+    Query: "What is the company's stock price?"
+
+    Response:
+    {{
+        "answer": "I don't know. Couldn't figure it out from the context."
+    }}
+
+    # INPUT VARIABLES
+
+    **CONTEXT:**
+    {context}
+
+    **USER QUERY:**
+    {query}
     """
-    llm=get_groq_llm(temperature=0.0).with_structured_output(QnAResponse)
+    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}})
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
@@ -45,10 +129,15 @@ def qna_node(state):
     
     try:
         response=llm.invoke(QnA_PROMPT.format(context=context, query=state["query"]))
+        data = json.loads(response.content)
+        validated = QnAResponse(**data)
         return {
-            "answer": response.answer,
+            "answer": validated.answer
         }
+    except ValidationError as e:
+        print(f"Resposne validation failed: {e}")
     except Exception as e:
+        raise e
         print(f"QnA Error: {str(e)}")
         return {
             "answer": "I encountered an error processing the documents.",
