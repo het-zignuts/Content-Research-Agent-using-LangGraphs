@@ -1,11 +1,7 @@
 from app.llms.groq import get_groq_llm
-<<<<<<< HEAD
-from app.schemas.schemas import BaseSchema
-=======
 from app.schemas.schemas import *
 from pydantic import ValidationError
 import json
->>>>>>> refactor/node-prompts
 
 def compare_node(state):
     """
@@ -131,11 +127,7 @@ def compare_node(state):
     {query}
     """
 
-<<<<<<< HEAD
-    llm=get_groq_llm(temperature=0.0).with_structured_output(BaseSchema)  # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
-=======
     llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}}) # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
->>>>>>> refactor/node-prompts
 
     docs=state["grouped_docs"] # get the grouped docs from the sate
     context="" # initialize an empty string to build the context for the LLM prompt
