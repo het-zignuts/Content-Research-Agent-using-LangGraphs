@@ -1,4 +1,4 @@
-from app.graph.graph import build_graph
+from app.graph.graph import graph
 from fastapi import APIRouter, Query, UploadFile, File, HTTPException, status
 from typing import List, Dict
 from app.config.config import Config
@@ -34,7 +34,6 @@ def ai_research(query: str = Query(..., description="Research query to ask the a
         
         ingest_docs(session_id, file_paths)  # ingest the uploaded documents (load, chunk, embed)
 
-        graph = build_graph()  # build the LangGraph for this session and query
         response = graph.invoke({"session_id": session_id, "query": query, "report_md": None, "answer": None})  # invoke the graph with the session ID and user query to get the response
 
         resp_status=200

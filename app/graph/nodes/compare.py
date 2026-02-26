@@ -1,5 +1,11 @@
 from app.llms.groq import get_groq_llm
+<<<<<<< HEAD
 from app.schemas.schemas import BaseSchema
+=======
+from app.schemas.schemas import *
+from pydantic import ValidationError
+import json
+>>>>>>> refactor/node-prompts
 
 def compare_node(state):
     """
@@ -7,46 +13,129 @@ def compare_node(state):
     """
 
     COMPARISION_PROMPT = """
-        SYSTEM INSTRUCTION:
-        You are a compare assistant in a langgraph based content research agent system.
+    ═══════════════════════════════════════════════════════════════════════════════
+    SYSTEM ROLE
+    ═══════════════════════════════════════════════════════════════════════════════
 
-        1. Compare and contrast all the documents given in the context below, based on the user query.
+    You are a **comparison assistant**.
 
-        2. You MUST respond ONLY with a valid JSON object. No markdown code fences, no preamble, no extra text outside the JSON.
+    ═══════════════════════════════════════════════════════════════════════════════
+    CORE TASK
+    ═══════════════════════════════════════════════════════════════════════════════
 
-        3. The JSON must strictly follow this format:
-        {{
-            "answer": "<comparison_table_and_conclusion>"
-        }}
+    **COMPARE AND CONTRAST** all documents provided in the context below, based on the user query.
 
-        4. The value of "answer" must be a single string containing:
-            a) A markdown table with columns: | Point of Comparison | <Doc1 Name> | <Doc2 Name> | ...
-            - Each cell must be concise.
-            - Each cell must include citation like: value (source: doc_name, page: N)
-            - No excessive spaces. Table must be clean and properly formatted.
-            b) After the table, a short conclusion starting on a new line: "Conclusion: ..."
-            
-        5. IMPORTANT: Since the answer is inside a JSON string:
-            - Use \\n for newlines inside the answer string.
-            - Do NOT use actual newline characters inside the JSON string value.
-            - Escape any special characters properly.
+    ═══════════════════════════════════════════════════════════════════════════════
+    OUTPUT FORMAT REQUIREMENTS
+    ═══════════════════════════════════════════════════════════════════════════════
 
-        6. Do NOT mix facts across documents.
-        7. Do NOT hallucinate. STRICTLY adhere to the provided context only.
-        8. If the query is out of context or unanswerable from provided docs, the answer field must be exactly:
-        "Couldn't generate comparison, based on provided context..."
+    CRITICAL: JSON Structure Only 
 
-        EXAMPLE OF VALID RESPONSE (structure only, not real data):
-        {{"answer": "| Point of Comparison | Phone A | Phone B |\\n|---|---|---|\\n| Display | 6.1 inch OLED (source: docA, page: 1) | 6.5 inch LCD (source: docB, page: 2) |\\n| Battery | 4000mAh (source: docA, page: 2) | 4500mAh (source: docB, page: 3) |\\n\\nConclusion: Phone B has a larger battery while Phone A offers a superior display technology."}}
+    You **MUST** respond with a VALID JSON OBJECT ONLY:
 
-        CONTEXT:
-        {context}
+    NO markdown code fences ("```json" or "```")
+    NO preamble or explanation  
+    NO extra text outside the JSON
 
-        USER QUERY:
-        {query}
+    ───────────────────────────────────────────────────────────────────────────────
+    Required JSON Schema
+    ───────────────────────────────────────────────────────────────────────────────
+
+    {{
+        "answer": "<comparison_table_and_conclusion>"
+    }}
+
+    ───────────────────────────────────────────────────────────────────────────────
+    Content of "answer" Field
+    ───────────────────────────────────────────────────────────────────────────────
+
+    The "answer" value **MUST** be a *single string* containing:
+
+    1. **Markdown Comparison Table**
+    
+    - Format: "| Point of Comparison | [Doc1_Name] | [Doc2_Name] | ... |"
+    
+    - Each cell MUST be **concise**
+    
+    - Each cell MUST include citation:
+        "value (source: [doc_name], page: [N])"
+    
+    - Table must be CLEAN with no excessive spaces
+    
+    - Proper markdown table formatting REQUIRED
+
+    2. **Conclusion Section**
+    
+    - Start on a NEW LINE after the table
+    
+    - Format: "Conclusion: [your_summary]"
+    
+    - Keep **concise** and **evidence-based**
+
+    ───────────────────────────────────────────────────────────────────────────────
+    JSON String Escaping Rules
+    ───────────────────────────────────────────────────────────────────────────────
+
+    IMPORTANT: Since the answer is inside a JSON string:
+
+    - Use "\\n" for newlines (NOT actual newline characters)
+    
+    - Escape all special characters properly (so that they are parsable)
+    
+    - The entire answer MUST be a valid JSON string value
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    CONTENT RULES
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    MUST:
+
+    1. **STRICTLY** adhere to provided context ONLY
+    
+    2. Cite sources with document name AND page number
+    
+    3. Keep facts SEPARATED by source document
+
+    DO NOT:
+
+    1. Mix facts across documents
+    
+    2. **HALLUCINATE** or infer beyond provided context
+    
+    3. Add information NOT present in the documents
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    FALLBACK RESPONSE
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    If the query is **OUT OF CONTEXT** or **UNANSWERABLE** from provided documents:
+
+    {{"answer": "Couldn't generate comparison, based on provided context..."}}
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    EXAMPLE OUTPUT
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    (Structure reference only - NOT real data)
+
+    {{"answer": "| Point of Comparison | Phone A | Phone B |\\n|---|---|---|\\n| Display | 6.1 inch OLED (source: docA, page: 1) | 6.5 inch LCD (source: docB, page: 2) |\\n| Battery | 4000mAh (source: docA, page: 2) | 4500mAh (source: docB, page: 3) |\\n\\nConclusion: Phone B has a larger battery while Phone A offers a superior display technology."}}
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    INPUT VARIABLES
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    **CONTEXT:**
+    {context}
+
+    **USER QUERY:**
+    {query}
     """
 
+<<<<<<< HEAD
     llm=get_groq_llm(temperature=0.0).with_structured_output(BaseSchema)  # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
+=======
+    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}}) # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
+>>>>>>> refactor/node-prompts
 
     docs=state["grouped_docs"] # get the grouped docs from the sate
     context="" # initialize an empty string to build the context for the LLM prompt
@@ -59,9 +148,13 @@ def compare_node(state):
 
     try:
         response=llm.invoke(COMPARISION_PROMPT.format(context=context, query=state["query"])) # Invoke the LLM with the formatted prompt, passing in the constructed context and the user query to generate the comparison output based on the provided documents and the user's request
+        data = json.loads(response.content)
+        validated = ComparisonResponse(**data)
         return {
-            "answer": response.answer, # return the generated comparison as the answer in the state, which can be used by downstream nodes in the graph to provide a response to the user or for further processing.
+            "answer": validated.answer,
         }
+    except ValidationError as e:
+        print(f"Resposne validation failed: {e}")
     except Exception as e:
         print(f"Comparison Error: {str(e)}")
         return {

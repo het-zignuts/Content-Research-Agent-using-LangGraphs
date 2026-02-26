@@ -7,6 +7,18 @@ class BaseSchema(BaseModel):
 class ExtractionResponse(BaseSchema):
     report: Optional[str]
 
+class SummarizationResponse(BaseSchema):
+    pass
+
+class ComparisonResponse(BaseSchema):
+    pass
+
+class QnAResponse(BaseSchema):
+    pass
+
+class InsightsResponse(BaseSchema):
+    pass
+
 class AgentResponse(BaseModel):
     status: int
     message: str

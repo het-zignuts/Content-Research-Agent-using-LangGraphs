@@ -1,31 +1,131 @@
 from app.llms.groq import get_groq_llm
 from app.schemas.schemas import ExtractionResponse 
 import json
+from pydantic import ValidationError
 
 def extract_node(state):
     EXTRACTION_PROMPT = """
-        SYSTEM INSTRUCTIONS:
-        You are an information extraction assistant, as a part of a langgraph based content research agent. You extract the details asked by the user in the query, from the uploaded docs and answer them with the extracted data.
-        You generate markdown report when asked. 
-        
-        1. Do not answer any question which is out of context of the provided documents. If you are not able to find answer to the user query from the provided documents, say "Couldn't extract answer from the provided docs..." in the answer field. Do not hallucinate or give any out of context answer.
-        
-        2. Provide a concise plain-text answer in the 'answer' field.
-        
-        3. If the user requested a report, generate a markdown report in the 'report' field.
-        
-        4. If no report is requested, leave 'report' as null or an empty string.
-        
-        5. the generated response should be such that it should STRICTLY survive pydantic model validation.
-    
-        CONTEXT:
-        {context}
+    ═══════════════════════════════════════════════════════════════════════════════
+    SYSTEM INSTRUCTION
+    ═══════════════════════════════════════════════════════════════════════════════
 
-        USER QUERY:
-        {query}        
+    You are an **information extraction assistant**.
+
+    Your role: **EXTRACT** the details requested in the user query from the uploaded documents and answer with the extracted data.
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    CORE CAPABILITIES
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    • Extract specific information from provided documents
+    • Generate **markdown reports** when requested
+    • Provide concise, evidence-based answers
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    OUTPUT FORMAT REQUIREMENTS
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    CRITICAL: Pydantic-Compatible JSON 
+
+    You **MUST** return a VALID JSON OBJECT that STRICTLY survives Pydantic model validation.
+
+    ───────────────────────────────────────────────────────────────────────────────
+    Required JSON Schema
+    ───────────────────────────────────────────────────────────────────────────────
+
+    {{
+        "answer": "[string]",
+        "report": "[string or null]"
+    }}
+
+    ───────────────────────────────────────────────────────────────────────────────
+    Field Specifications
+    ───────────────────────────────────────────────────────────────────────────────
+
+    1. **"answer"** (REQUIRED - string)
+    
+    • Provide a **concise plain-text answer**
+    
+    • Extract information DIRECTLY from provided documents
+    
+    • Keep response focused and relevant
+
+    2. **"report"** (OPTIONAL - string or null)
+    
+    • If user REQUESTED a report → generate **markdown report**
+    
+    • If NO report requested → set to "null" or ""
+    
+    • Report must be properly formatted markdown
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    CONTENT RULES
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    MUST:
+
+    1. Extract information **ONLY** from provided documents
+    
+    2. Base answers on ACTUAL content in context
+    
+    3. Generate markdown reports when explicitly requested
+
+    DO NOT:
+
+    1. Answer questions **OUT OF CONTEXT** of provided documents
+    
+    2. **HALLUCINATE** or provide information not in documents
+    
+    3. Give answers beyond the scope of provided context
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    FALLBACK RESPONSE
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    If you **CANNOT** find the answer in the provided documents:
+
+    {{
+        "answer": "Couldn't extract answer from the provided docs...",
+        "report": null
+    }}
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    EXAMPLE OUTPUTS
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    **Example 1:** Simple extraction (no report)
+
+    {{
+        "answer": "The company's revenue for Q4 2023 was $2.5 million, as stated on page 3 of the financial report.",
+        "report": null
+    }}
+
+    **Example 2:** Extraction with report
+
+    {{
+        "answer": "The document contains 5 key findings related to market trends.",
+        "report": "# Market Trends Analysis\\n\\n## Key Findings\\n\\n1. **Growth Rate**: 15% YoY\\n2. **Market Size**: $500M\\n..."
+    }}
+
+    **Example 3:** Out of context query
+
+    {{
+        "answer": "Couldn't extract answer from the provided docs...",
+        "report": null
+    }}
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    INPUT VARIABLES
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    **CONTEXT:**
+    {context}
+
+    **USER QUERY:**
+    {query}    
     """
 
-    llm=get_groq_llm(temperature=0.0).with_structured_output(ExtractionResponse)
+    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}})
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
@@ -34,10 +134,14 @@ def extract_node(state):
     
     try:
         response=llm.invoke(EXTRACTION_PROMPT.format(context=context, query=state["query"]))
+        data = json.loads(response.content)
+        validated = ExtractionResponse(**data)
         return {
-            "answer": response.answer,
-            "report_md": response.report if response.report else None
+            "answer": validated.answer,
+            "report_md": validated.report
         }
+    except ValidationError as e:
+        print(f"Resposne validation failed: {e}")
     except Exception as e:
         print(f"Extraction Error: {str(e)}")
         return {
