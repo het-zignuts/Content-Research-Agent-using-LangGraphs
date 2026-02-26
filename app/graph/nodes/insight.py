@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import InsightsResponse
+from app.schemas import InsightSchema
 from pydantic import ValidationError
 import json
 
@@ -110,7 +110,7 @@ def insight_node(state):
         **USER QUERY:**
         {query}
     """
-    llm=get_groq_llm(temperature=0.3, model_kwargs={"response_format": {"type": "json_object"}})
+    llm=get_groq_llm(temperature=0.3, model_kwargs=InsightSchema)
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
@@ -120,9 +120,8 @@ def insight_node(state):
     try:
         response=llm.invoke(INSIGHT_PROMPT.format(context=context, query=state["query"]))
         data = json.loads(response.content)
-        validated = InsightsResponse(**data)
         return {
-            "answer": validated.answer,
+            "answer": data["answer"],
         }
     except ValidationError as e:
         print(f"Resposne validation failed: {e}")

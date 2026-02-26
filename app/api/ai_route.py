@@ -8,7 +8,7 @@ import shutil
 import uuid
 from app.utils.utils import cleanup_session
 from fastapi.responses import FileResponse
-from app.schemas.schemas import AgentResponse
+from app.schemas import AgentResponse
 
 # A router for handling AI research requests, which includes uploading documents, invoking the LangGraph for processing, and returning the response along with any generated reports. 
 # It also includes a route for downloading generated reports.

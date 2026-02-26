@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import ExtractionResponse 
+from app.schemas import ExtractionSchema
 import json
 from pydantic import ValidationError
 
@@ -125,7 +125,7 @@ def extract_node(state):
     {query}    
     """
 
-    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}})
+    llm=get_groq_llm(temperature=0.0, model_kwargs=ExtractionSchema)
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
@@ -135,10 +135,9 @@ def extract_node(state):
     try:
         response=llm.invoke(EXTRACTION_PROMPT.format(context=context, query=state["query"]))
         data = json.loads(response.content)
-        validated = ExtractionResponse(**data)
         return {
-            "answer": validated.answer,
-            "report_md": validated.report
+            "answer": data["answer"],
+            "report_md": data["report"]
         }
     except ValidationError as e:
         print(f"Resposne validation failed: {e}")

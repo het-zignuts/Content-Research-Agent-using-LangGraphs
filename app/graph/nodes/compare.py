@@ -1,6 +1,7 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import *
-from pydantic import ValidationError
+from app.schemas import ComparisonSchema
+from pydantic import ValidationError, BaseModel
+from typing import Dict
 import json
 
 def compare_node(state):
@@ -8,7 +9,7 @@ def compare_node(state):
     Compare Node for the LangGraph. This node takes the grouped documents retrieved from the vector database and compares them based on the user query. It constructs a context for the LLM prompt by aggregating the content from the retrieved documents, including their names and page numbers for reference. The node then defines a comparison prompt that instructs the LLM to compare and contrast the documents in a structured tabular format, ensuring that each point of comparison is clearly identified along with its source. The LLM is invoked with this prompt, and the generated comparison is returned as the answer in the state for downstream processing or response generation.
     """
 
-    COMPARISION_PROMPT = """
+    COMPARISON_PROMPT = """
     ═══════════════════════════════════════════════════════════════════════════════
     SYSTEM ROLE
     ═══════════════════════════════════════════════════════════════════════════════
@@ -127,7 +128,7 @@ def compare_node(state):
     {query}
     """
 
-    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}}) # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
+    llm=get_groq_llm(temperature=0.0, model_kwargs=ComparisonSchema) # initialize the GROQ LLM with a temperature of 0.0 for deterministic output.
 
     docs=state["grouped_docs"] # get the grouped docs from the sate
     context="" # initialize an empty string to build the context for the LLM prompt
@@ -139,11 +140,10 @@ def compare_node(state):
             context+=f"- {content['content']}\n Page Number: {content['page_number']}\n" # add each content piece from the document to the context, along with its page number for reference
 
     try:
-        response=llm.invoke(COMPARISION_PROMPT.format(context=context, query=state["query"])) # Invoke the LLM with the formatted prompt, passing in the constructed context and the user query to generate the comparison output based on the provided documents and the user's request
+        response=llm.invoke(COMPARISON_PROMPT.format(context=context, query=state["query"])) # Invoke the LLM with the formatted prompt, passing in the constructed context and the user query to generate the comparison output based on the provided documents and the user's request
         data = json.loads(response.content)
-        validated = ComparisonResponse(**data)
         return {
-            "answer": validated.answer,
+            "answer": data["answer"],
         }
     except ValidationError as e:
         print(f"Resposne validation failed: {e}")

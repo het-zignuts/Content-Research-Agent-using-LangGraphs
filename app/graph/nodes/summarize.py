@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import SummarizationResponse 
+from app.schemas import SummarizationSchema
 from pydantic import ValidationError
 import json
 
@@ -183,17 +183,15 @@ def summarize_node(state):
     **USER QUERY:**
     {query}
     """
-    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}})
+    llm=get_groq_llm(temperature=0.0, model_kwargs=SummarizationSchema)
     # prepare context
     context="\n".join(f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Page Content: {d.page_content}\n" for d in state["documents"])
     #invoke llm
     try:
         response=llm.invoke(SUMMARY_PROMPT.format(context=context, query=state["query"]))
         data = json.loads(response.content)
-        validated = SummarizationResponse(**data)
-
         return {
-            "answer": validated.answer,
+            "answer": data["answer"],
         }
     except ValidationError as e:
         print(f"Resposne validation failed: {e}")

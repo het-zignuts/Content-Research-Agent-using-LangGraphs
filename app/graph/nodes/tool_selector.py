@@ -128,8 +128,6 @@ def tool_selector_node(state):
     - Example: "Merge these two files in order" → 'None' (no merge tool available)
 
     **CRITICAL IMPERATIVE:**
-    - DO NOT GIVE INCORRECT CATEGORY
-    - Better to return 'None' than misclassify
     - Be intelligent in resolving conflicts between categories
     - Analyze the *tone* and *intent* of the query, not just keywords
 

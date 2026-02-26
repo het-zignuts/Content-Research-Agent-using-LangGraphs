@@ -1,5 +1,5 @@
 from app.llms.groq import get_groq_llm
-from app.schemas.schemas import QnAResponse
+from app.schemas import QnASchema
 from pydantic import ValidationError
 import json
 
@@ -120,7 +120,7 @@ def qna_node(state):
     **USER QUERY:**
     {query}
     """
-    llm=get_groq_llm(temperature=0.0, model_kwargs={"response_format": {"type": "json_object"}})
+    llm=get_groq_llm(temperature=0.0, model_kwargs=QnASchema)
     
     context = "\n".join(
         f"Document: {d.metadata['source']}, Page: {d.metadata['page']}\n Content: {d.page_content}\n" 
@@ -130,9 +130,8 @@ def qna_node(state):
     try:
         response=llm.invoke(QnA_PROMPT.format(context=context, query=state["query"]))
         data = json.loads(response.content)
-        validated = QnAResponse(**data)
         return {
-            "answer": validated.answer
+            "answer": data["answer"],
         }
     except ValidationError as e:
         print(f"Resposne validation failed: {e}")
